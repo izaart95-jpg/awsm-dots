@@ -1,0 +1,34 @@
+// ~/.config/rofi/config.rasi
+//config for basic-theme.rasi
+/*
+configuration {
+    modi:                       "drun,run,window";
+    show-icons:                 false; // use fonts
+    //icon-theme:                 "Papirus";
+    display-drun:               "󰣇";
+    display-run:                "";
+    display-window:             "󰖟";
+    drun-display-format:        "{name}";
+    window-format:              "{w} · {c} · {t}";
+    terminal:                   "kitty";
+    disable-history:            false;
+    sidebar-mode:               false;
+    hover-select:               true;
+    scroll-method:              0;
+    click-to-exit:              true;
+}
+*/
+// config for cursor
+
+configuration {
+    hover-select:         true;
+    scroll-method:        0;
+}
+    
+
+// Uncomment the theme you want to use:
+// @theme "~/.config/rofi/themes/theme-3.rasi"
+// @theme "~/.config/rofi/themes/basic-theme.rasi"
+//@theme "~/.config/rofi/themes/theme-2.rasi" 
+@theme "~/.config/rofi/themes/default-theme.rasi"      // Your original rounded theme
+

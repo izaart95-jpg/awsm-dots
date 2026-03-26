@@ -1,2 +1,0 @@
-# awsm-dots
-Awsm Dotfiles 
