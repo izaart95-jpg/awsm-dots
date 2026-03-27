@@ -52,6 +52,11 @@ tag.connect_signal("property::layout", set_gap_size)
 -- ============================================
 -- CONFIGURATION
 -- ============================================
+local show_ram = true
+local show_cpu = false -- CPU DOESNT WORKS FOR PROOT IG
+local show_bat = false 
+local show_wifi = true
+local show_vol  = true
 local terminal = "kitty"
 local modkey = "Mod4"
 local bar_pos = "top"
@@ -101,9 +106,23 @@ awful.layout.layouts = {
 local function icon_widget(icon, size, color)
     size = size or 14
     color = color or "#cdd6f4"
+    local cup = nil
+    if icon == icons.cpu then 
+	    cup = 10
+    elseif icon == icons.memory then
+	    cup = 16
+    elseif icon == icons.wifi then
+	    cup = 10
+    else
+	    cup = 6
+    end
+	    
     return wibox.widget {
         markup = '<span font="JetBrainsMono Nerd Font ' .. size .. '" foreground="' .. color .. '">' .. icon .. '</span>',
-        widget = wibox.widget.textbox
+        widget = wibox.widget.textbox,
+	forced_width = size + cup,   -- give glyphs breathing room
+        align = "center",
+        valign = "center"
     }
 end
 
@@ -124,7 +143,7 @@ local function create_monitor(icon, color, unit)
 
     local content = wibox.widget {
         layout = wibox.layout.fixed.horizontal,
-        spacing = 6,
+        spacing = 4,
         icon_w,
         value_w
     }
@@ -136,11 +155,17 @@ local function create_monitor(icon, color, unit)
         widget = wibox.container.constraint
     }
 
+    local both
+    if icon == icons.memory then
+	    both = 6
+    else
+	    both = 8
+    end
     local container = wibox.widget {
         {
             fixed,
-            left = 8,
-            right = 8,
+            left = both,
+            right = both,
             top = 4,
             bottom = 4,
             widget = wibox.container.margin
@@ -173,14 +198,14 @@ local function create_volume()
 
     local content = wibox.widget {
         layout = wibox.layout.fixed.horizontal,
-        spacing = 6,
+        spacing = 4,
         icon_w,
         value_w
     }
 
     local fixed = wibox.widget {
         content,
-        forced_width = 70,
+        forced_width = 55,
         widget = wibox.container.constraint
     }
 
@@ -237,14 +262,14 @@ local function create_battery()
 
     local content = wibox.widget {
         layout = wibox.layout.fixed.horizontal,
-        spacing = 6,
+        spacing = 4,
         icon_w,
         value_w
     }
 
     local fixed = wibox.widget {
         content,
-        forced_width = 70,
+        forced_width = 45,
         widget = wibox.container.constraint
     }
 
@@ -252,7 +277,7 @@ local function create_battery()
         {
             fixed,
             left = 8,
-            right = 8,
+            right = 4,
             top = 4,
             bottom = 4,
             widget = wibox.container.margin
@@ -302,11 +327,10 @@ end
 -- Create WiFi widget with status updates
 local function create_wifi()
     local icon_w = icon_widget(icons.wifi, 12, "#89b4fa")
-    
     local container = wibox.widget {
         {
             icon_w,
-            left = 8,
+            left = 2,
             right = 8,
             top = 4,
             bottom = 4,
@@ -324,14 +348,18 @@ local function create_wifi()
         container.bg = "#00000000"
     end)
     
-    -- Update WiFi status every 5 seconds
-    awful.widget.watch("bash -c 'nmcli -t -f wifi g 2>/dev/null || echo disabled'", 5, function(_, out)
-        if out and out:match("enabled") then
+    -- Update WiFi status every 2 seconds
+    awful.widget.watch(
+    "bash -c \"ip a | grep -E '^[0-9]+: (wlan|wl)' | grep UP\"",
+    2,
+    function(_, out)
+        if out and out ~= "" then
             icon_w.markup = '<span font="JetBrainsMono Nerd Font 12" foreground="#89b4fa">' .. icons.wifi .. '</span>'
         else
             icon_w.markup = '<span font="JetBrainsMono Nerd Font 12" foreground="#6c7086">' .. icons.wifi_off .. '</span>'
         end
-    end)
+    end
+)
     
     return container
 end
@@ -359,10 +387,11 @@ local function create_layout_icon(s, size)
     local container = wibox.widget {
         {
             icon_w,
-            left = 8,
-            right = 8,
+            left = 3,
+            right = 6,
             top = 4,
             bottom = 4,
+	    forced_width = size + 25,
             widget = wibox.container.margin
         },
         bg = "#00000000",
@@ -437,8 +466,8 @@ awful.screen.connect_for_each_screen(function(s)
     end
     awful.spawn.with_shell("feh --bg-fill " .. wallpaper .. " 2>/dev/null || true")
 
-    -- Tags (7 workspaces)
-    awful.tag({"1", "2", "3", "4", "5", "6", "7"}, s, awful.layout.layouts[1])
+    -- Tags (5 workspaces)
+    awful.tag({"1", "2", "3", "4", "5"}, s, awful.layout.layouts[1])
     s.mypromptbox = awful.widget.prompt()
 
     -- Taglist
@@ -480,11 +509,40 @@ awful.screen.connect_for_each_screen(function(s)
     local wifi = create_wifi()
 
     -- Update CPU (better detection using mpstat)
-    awful.widget.watch("bash -c 'mpstat 1 1 2>/dev/null | awk \"/Average/ {print 100 - \\$NF}\" || echo 0'", 2,
-        function(_, out)
-            local v = out:match("(%d+)") or "0"
-            cpu:update(v)
-        end)
+     local prev = nil
+
+awful.widget.watch("grep '^cpu ' /proc/stat", 2, function(_, out)
+    local user, nice, system, idle, iowait, irq, softirq, steal =
+        out:match("cpu%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)%s+(%d+)")
+
+    local cur = {
+        user = tonumber(user) or 0,
+        nice = tonumber(nice) or 0,
+        system = tonumber(system) or 0,
+        idle = tonumber(idle) or 0,
+        iowait = tonumber(iowait) or 0,
+        irq = tonumber(irq) or 0,
+        softirq = tonumber(softirq) or 0,
+        steal = tonumber(steal) or 0
+    }
+
+    cur.total = cur.user + cur.nice + cur.system + cur.idle +
+                cur.iowait + cur.irq + cur.softirq + cur.steal
+    cur.idle_total = cur.idle + cur.iowait
+
+    if prev then
+        local diff_total = cur.total - prev.total
+        local diff_idle = cur.idle_total - prev.idle_total
+
+        if diff_total > 0 then
+            local usage = (1 - diff_idle / diff_total) * 100
+            usage = math.max(0, math.min(usage, 100))
+            cpu:update(string.format("%.0f", usage))
+        end
+    end
+
+    prev = cur
+end)
 
     -- Update RAM
     awful.widget.watch("bash -c \"free -m | awk 'NR==2{printf \\\"%d\\\", $3}'\"", 3,
@@ -512,7 +570,7 @@ awful.screen.connect_for_each_screen(function(s)
     local launcher = wibox.widget {
         {
             icon_widget(icons.launcher, 20, "#cba6f7"),
-            left = 12, right = 12, top = 4, bottom = 4,
+            left = 3, right = 7, top = 4, bottom = 4,
             widget = wibox.container.margin,
         },
         bg = "#313244",
@@ -530,37 +588,6 @@ awful.screen.connect_for_each_screen(function(s)
         launcher.bg = "#313244"
     end)
 
-    -- Position button
-    local pos_btn = wibox.widget {
-        {
-            icon_widget(icons.arrow, 12, "#6c7086"),
-            left = 8, right = 8, top = 4, bottom = 4,
-            widget = wibox.container.margin,
-        },
-        bg = "#00000000",
-        shape = function(cr, w, h) gears.shape.rounded_rect(cr, w, h, 6) end,
-        widget = wibox.container.background,
-    }
-
-    pos_btn:connect_signal("mouse::enter", function()
-        pos_btn.bg = "#2a2c3a"
-    end)
-    pos_btn:connect_signal("mouse::leave", function()
-        pos_btn.bg = "#00000000"
-    end)
-
-    local bar_positions = {"top", "bottom", "left", "right"}
-    local current_bar_pos = 1
-
-    pos_btn:connect_signal("button::press", function()
-        current_bar_pos = (current_bar_pos % #bar_positions) + 1
-        bar_pos = bar_positions[current_bar_pos]
-        for scr in screen do
-            if scr.mywibar then scr.mywibar:remove() end
-        end
-        awesome.emit_signal("request::desktop_decoration")
-    end)
-
     -- Layout button
     local layout_icon = create_layout_icon(s, 16)
 
@@ -569,15 +596,35 @@ awful.screen.connect_for_each_screen(function(s)
 
     -- Build right widgets
     local right_widgets = wibox.layout.fixed.horizontal()
-    right_widgets.spacing = 4
+    right_widgets.spacing = 0
 
-    right_widgets:add(cpu.widget)
-    right_widgets:add(ram.widget)
-    right_widgets:add(volume.widget)
-    right_widgets:add(battery.widget)
-    right_widgets:add(wifi)
+    if show_cpu then
+	    right_widgets:add(cpu.widget)
+    else
+	    
+    end
+    if show_ram then
+	    right_widgets:add(ram.widget)
+    else
+
+    end
+    if show_vol then
+	    right_widgets:add(volume.widget)
+    else
+
+    end
+    if show_bat then 
+	    right_widgets:add(battery.widget)
+    else
+
+    end
+    if show_wifi then
+	    right_widgets:add(wifi)
+    else
+
+    end
+
     right_widgets:add(tray)
-    right_widgets:add(pos_btn)
     right_widgets:add(layout_icon)
 
     -- Create wibar
@@ -585,7 +632,7 @@ awful.screen.connect_for_each_screen(function(s)
         position = bar_pos,
         screen = s,
         height = 34,
-        bg = beautiful.bg_normal .. "f0",
+        bg = beautiful.bg_normal .. "c8",
         border_width = 0,
     })
 
@@ -648,7 +695,7 @@ local globalkeys = gears.table.join(
 )
 
 -- Tag keybindings
-for i = 1, 7 do
+for i = 1, 5 do
     globalkeys = gears.table.join(globalkeys,
         awful.key({modkey}, "#" .. i + 9, function()
             local screen = awful.screen.focused()
