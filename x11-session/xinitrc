@@ -1,0 +1,25 @@
+#!/bin/bash
+# X11 Session Initialization Script
+# ─────────────────────────────────────────────────────────────────────────────
+# Fallback X11 session using AwesomeWM when Wayland/Niri is unavailable
+# Usage: startx ~/.config/x11-session/xinitrc
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Kill existing instances to avoid conflicts
+pkill -9 dunst 2>/dev/null
+pkill -9 picom 2>/dev/null
+sleep 0.2
+
+# Start compositor
+picom -b &
+
+# Start notification daemon
+dunst &
+
+# Set wallpaper
+if [ -f ~/Pictures/wallpaper.jpg ]; then
+    feh --bg-fill ~/Pictures/wallpaper.jpg &
+fi
+
+# Start AwesomeWM
+exec awesome

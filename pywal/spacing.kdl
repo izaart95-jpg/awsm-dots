@@ -1,0 +1,59 @@
+// Spacing & Sizing Configuration
+// ─────────────────────────────────────────────────────────────────────────────
+// Centralized spacing tokens for consistent layout across all components
+// Imported by niri/config.kdl and Quickshell theme.qml
+
+let {
+    // Base spacing unit (px)
+    // Build all other values as multiples of this
+    unit = 4
+    
+    // Padding/Margin sizes
+    space-xs   = unit * 1    // 4px
+    space-sm   = unit * 2    // 8px
+    space-md   = unit * 3    // 12px
+    space-lg   = unit * 4    // 16px
+    space-xl   = unit * 6    // 24px
+    space-2xl  = unit * 8    // 32px
+    
+    // Gaps (between elements)
+    gap-xs   = 2
+    gap-sm   = 4
+    gap-md   = 8
+    gap-lg   = 12
+    gap-xl   = 16
+    
+    // Window & Border
+    border-width-thin   = 1
+    border-width-normal = 2
+    border-width-thick  = 3
+    border-radius       = 4
+    border-radius-lg    = 8
+    
+    // Bar (Quickshell)
+    bar-height        = 32
+    bar-padding       = space-sm
+    bar-item-height   = bar-height - (bar-padding * 2)
+    bar-gap           = gap-sm
+    
+    // Island bar mode
+    island-margin-top   = space-md
+    island-margin-side  = space-lg
+    island-border-radius = border-radius-lg
+    
+    // Animations
+    duration-short  = 150    // ms
+    duration-normal = 300
+    duration-long   = 500
+    easing-standard = "cubic-bezier(0.4, 0, 0.2, 1)"
+    easing-ease-out = "cubic-bezier(0, 0, 0.2, 1)"
+    easing-ease-in  = "cubic-bezier(0.4, 0, 1, 1)"
+    
+    // Opacity
+    opacity-full     = 1.0
+    opacity-high     = 0.9
+    opacity-mid      = 0.7
+    opacity-low      = 0.5
+    opacity-verylow  = 0.3
+    opacity-ghost    = 0.1
+}

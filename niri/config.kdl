@@ -1,0 +1,199 @@
+// Niri Configuration (KDL)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Migration from AwesomeWM to Niri with X11 support
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Input Settings ───────────────────────────────────────────────────────────
+input {
+    // Keyboard layout
+    keyboard {
+        xkb {
+            layout "us"
+            // variant ""
+            // options ""
+        }
+    }
+
+    // Mouse/trackpad settings
+    mouse {
+        accel-speed 0.0  // 0.0 = no acceleration
+        // natural-scroll true
+    }
+
+    trackpad {
+        accel-speed 0.0
+        // natural-scroll true
+        // tap true
+        // tap-button-map "left-middle-right"
+    }
+
+    // Touchpad gestures
+    touchpad {
+        // 4-finger swipe: workspace navigation, pinch: zoom, etc.
+    }
+}
+
+// ─── Output (Display) Settings ────────────────────────────────────────────────
+output "eDP-1" {
+    scale 1.0
+    mode "1920x1080@60"
+    position x=0 y=0
+    // background-color "#1e1e2e"
+}
+
+// Uncomment for multiple monitors
+// output "HDMI-1" {
+//     scale 1.0
+//     mode "1920x1080@60"
+//     position x=1920 y=0
+// }
+
+// ─── Layout Settings ──────────────────────────────────────────────────────────
+layout {
+    // Column layout: tiling with master/detail columns
+    // gaps 4
+    border {
+        width 1
+        active-color "#cba6f7"      // Catppuccin mauve
+        inactive-color "#45475a"    // Catppuccin surface1
+    }
+
+    // Focus follows mouse (optional)
+    // focus-follows-mouse {
+    //     create true
+    // }
+
+    // When opening new windows in floating/tiled modes
+    // prefer-floating-width 1280
+    // prefer-floating-height 720
+}
+
+// ─── Workspace Settings ───────────────────────────────────────────────────────
+workspace-switch {
+    // Animation configuration for workspace transitions
+    // duration "250ms"
+}
+
+// ─── Window Rules (Replaces AwesomeWM's rules.lua) ────────────────────────────
+window-rule {
+    // Floating windows: dialogs, file managers, etc.
+    match title=".*[Ss]earch.*"
+    open-floating true
+}
+
+window-rule {
+    match class="pavucontrol|arandr|Arandr|lxappearance"
+    open-floating true
+    open-centered true
+}
+
+window-rule {
+    match class="Thunar|thunar"
+    open-floating true
+    open-centered true
+    open-size width=800 height=600
+}
+
+window-rule {
+    match class="Pavucontrol"
+    open-floating true
+    open-centered true
+    open-size width=600 height=400
+}
+
+// ─── Keybindings ──────────────────────────────────────────────────────────────
+binds {
+    // Meta key (Super/Win)
+    "Super+Return".action = "spawn" "kitty"
+    "Super+d".action      = "spawn" "rofi -show drun"
+    "Super+r".action      = "spawn" "rofi -show run"
+    "Super+w".action      = "spawn" "rofi -show window"
+    "Super+b".action      = "spawn" "firefox"
+    "Super+e".action      = "spawn" "thunar"
+
+    // Workspace/Workspace navigation (replaces tag navigation)
+    "Super+Left".action  = "workspace-switch" "-1"
+    "Super+Right".action = "workspace-switch" "+1"
+    "Super+1".action     = "workspace-switch" "0"
+    "Super+2".action     = "workspace-switch" "1"
+    "Super+3".action     = "workspace-switch" "2"
+    "Super+4".action     = "workspace-switch" "3"
+    "Super+5".action     = "workspace-switch" "4"
+
+    // Focus navigation (Niri's native window focus)
+    "Super+j".action = "focus-column" "right"
+    "Super+k".action = "focus-column" "left"
+    "Super+i".action = "focus-row" "down"
+    "Super+u".action = "focus-row" "up"
+
+    // Window management
+    "Super+Shift+j".action  = "move-column" "right"
+    "Super+Shift+k".action  = "move-column" "left"
+    "Super+Shift+i".action  = "move-row" "down"
+    "Super+Shift+u".action  = "move-row" "up"
+
+    // Layout resizing (column widths)
+    "Super+l".action      = "resize-column" "right" "5%"
+    "Super+h".action      = "resize-column" "left" "5%"
+    "Super+Shift+l".action = "resize-row" "down" "5%"
+    "Super+Shift+h".action = "resize-row" "up" "5%"
+
+    // Layout switching
+    "Super+space".action        = "next-layout"
+    "Super+Shift+space".action  = "prev-layout"
+
+    // Window actions
+    "Super+f".action          = "fullscreen-window"
+    "Super+Shift+c".action    = "close-window"
+    "Super+Ctrl+space".action = "toggle-floating-window"
+    "Super+t".action          = "toggle-window-floating"
+    "Super+m".action          = "maximize-column"
+    "Super+n".action          = "minimize-column"
+
+    // Screenshots
+    "Print".action       = "spawn" "maim ~/Pictures/ss-$(date +%s).png"
+    "Super+Print".action = "spawn" "maim -s ~/Pictures/ss-$(date +%s).png"
+
+    // Media keys
+    "XF86AudioRaiseVolume".action  = "spawn" "pamixer -i 5"
+    "XF86AudioLowerVolume".action  = "spawn" "pamixer -d 5"
+    "XF86AudioMute".action         = "spawn" "pamixer -t"
+    "XF86AudioPlay".action         = "spawn" "playerctl play-pause"
+    "XF86AudioNext".action         = "spawn" "playerctl next"
+    "XF86AudioPrev".action         = "spawn" "playerctl previous"
+
+    // Niri-specific commands
+    "Super+Escape".action = "show-hotkey-overlay"
+}
+
+// ─── Decorations (Titlebars) ──────────────────────────────────────────────────
+prefer-no-csd
+
+// ─── Cursor Settings ──────────────────────────────────────────────────────────
+// Use default system cursor
+// or set custom theme:
+// cursor {
+//     theme "Adwaita"
+//     size 24
+// }
+
+// ─── Miscellaneous ────────────────────────────────────────────────────────────
+// Screenshot path
+screenshot-path "~/Pictures/Screenshot from %F %T.png"
+
+// Animations
+// animations {
+//     workspace-switch {
+//         duration-ms 300
+//     }
+//     window-open {
+//         duration-ms 300
+//     }
+// }
+
+// ─── Startup Commands ─────────────────────────────────────────────────────────
+spawn-at-startup "bash" "-c" "pkill -9 picom dunst; sleep 0.2; dunst &"
+spawn-at-startup "bash" "-c" "feh --bg-fill ~/Pictures/wallpaper.jpg 2>/dev/null || true"
+
+// Optional: Start Quickshell bar when Niri starts
+spawn-at-startup "quickshell"

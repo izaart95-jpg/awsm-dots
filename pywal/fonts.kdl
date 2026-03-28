@@ -1,0 +1,36 @@
+// Font Configuration for Niri
+// ─────────────────────────────────────────────────────────────────────────────
+// Centralized font settings for all components
+// Imported by niri/config.kdl and Quickshell theme.qml
+
+let {
+    // Font families (ensure packages are installed)
+    font-mono    = "JetBrainsMono Nerd Font"
+    font-sans    = "Noto Sans"
+    font-emoji   = "Noto Color Emoji"
+    
+    // Font sizes (in pixels)
+    size-ui      = 10
+    size-ui-sm   = 8
+    size-ui-lg   = 12
+    size-title   = 14
+    size-heading = 16
+    size-mono    = 9
+    
+    // Typography
+    line-height-tight  = 1.2
+    line-height-normal = 1.5
+    line-height-loose  = 1.8
+    
+    letter-spacing-tight  = -0.02
+    letter-spacing-normal = 0.0
+    letter-spacing-loose  = 0.02
+    
+    // Weight aliases
+    weight-thin    = 100
+    weight-light   = 300
+    weight-normal  = 400
+    weight-medium  = 500
+    weight-bold    = 700
+    weight-black   = 900
+}
