@@ -17,7 +17,6 @@ local M = {
 }
 
 -- ─── Easing library ───────────────────────────────────────────────────────────
--- All functions take t ∈ [0,1] and return a value in [0,1].
 M.easing = {}
 
 function M.easing.linear(t)      return t end
@@ -45,6 +44,7 @@ function M.tween(from, to, duration, setter, easing_fn, on_done)
 
     local elapsed = 0
     local handle  = {}
+    local started = false   -- guard: don't stop before started
     local timer   = gears.timer { timeout = M.step_interval }
 
     timer:connect_signal("timeout", function()
@@ -61,12 +61,20 @@ function M.tween(from, to, duration, setter, easing_fn, on_done)
 
         if t >= 1 then
             timer:stop()
+            started = false
             if on_done then on_done() end
         end
     end)
 
     timer:start()
-    handle.stop = function() timer:stop() end
+    started = true
+
+    handle.stop = function()
+        if started then
+            timer:stop()
+            started = false
+        end
+    end
     return handle
 end
 
@@ -95,7 +103,6 @@ local function rgb_to_hex(r, g, b, a)
         math.floor(a*255+0.5))
 end
 
--- Interpolate two hex colors at t ∈ [0,1]
 local function lerp_color(hex_a, hex_b, t)
     local r1,g1,b1,a1 = hex_to_rgb(hex_a)
     local r2,g2,b2,a2 = hex_to_rgb(hex_b)
@@ -107,18 +114,19 @@ local function lerp_color(hex_a, hex_b, t)
 end
 
 -- ─── High-level: hover color fade ─────────────────────────────────────────────
--- Attach hover-in / hover-out color transitions to any wibox.container.background.
--- color_normal and color_hover are hex strings (may include alpha).
 function M.hover(widget, color_normal, color_hover, duration)
     duration    = duration    or M.hover_duration
     color_normal = color_normal or (beautiful.widget_bg or "#00000000")
     color_hover  = color_hover  or (beautiful.bg_focus  or "#313244")
 
-    local current_t  = 0   -- 0 = normal, 1 = hovered
+    local current_t    = 0
     local active_tween = nil
 
     local function animate_to(target_t)
-        if active_tween then active_tween.stop() end
+        if active_tween then
+            active_tween.stop()
+            active_tween = nil
+        end
         local start_t = current_t
         active_tween = M.tween(0, 1, duration, function(p)
             current_t = start_t + (target_t - start_t) * p
@@ -130,7 +138,7 @@ function M.hover(widget, color_normal, color_hover, duration)
     widget:connect_signal("mouse::leave",  function() animate_to(0) end)
 end
 
--- ─── High-level: press flash (brief brighten then return) ─────────────────────
+-- ─── High-level: press flash ──────────────────────────────────────────────────
 function M.press_flash(widget, color_normal, color_press, duration)
     duration    = duration    or M.press_duration
     color_normal = color_normal or (beautiful.bg_focus   or "#313244")
@@ -138,7 +146,6 @@ function M.press_flash(widget, color_normal, color_press, duration)
 
     widget:connect_signal("button::press", function()
         if not M.enabled then return end
-        -- Flash to press color, then snap back
         widget.bg = color_press
         local t = gears.timer { timeout = duration }
         t:connect_signal("timeout", function()
@@ -166,8 +173,6 @@ function M.opacity_pulse(widget, duration)
 end
 
 -- ─── attach(): the all-in-one call used by widgets.lua / make_pill ────────────
--- Wires hover + press to a background container widget.
--- Reads color tokens from beautiful automatically.
 function M.attach(widget, opts)
     opts = opts or {}
     local cn = opts.color_normal or beautiful.widget_bg    or "#00000000"
