@@ -13,3 +13,5 @@ sudo gtk-update-icon-cache -f /usr/share/icons/theme
 
 
 librsvg loader = clone build with pixbuf-loader enabled
+
+nerd fonyts yazi  thunar
