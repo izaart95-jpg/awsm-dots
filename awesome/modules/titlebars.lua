@@ -151,7 +151,7 @@ local function refresh_titlebar(c, focused)
     local bg = focused
         and (beautiful.titlebar_bg_focus  or beautiful.bg_focus  or "#313244")
         or  (beautiful.titlebar_bg_normal or beautiful.bg_normal or "#1e1e2e")
-    local tb = awful.titlebar.widget(c)
+    local tb = awful.titlebar(c)
     if tb then tb.bg = bg end
 end
 
