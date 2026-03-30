@@ -1,11 +1,11 @@
 -- modules/keybindings.lua
 -- ─────────────────────────────────────────────────────────────────────────────
 -- All global and client keybindings.
--- New bindings vs original:
---   Mod4+Shift+t  — toggle theme (catppuccin ↔ tokyonight)
---   Mod4+Shift+a  — toggle window animations
+--   Mod4+Shift+t  — cycle theme (catppuccin → tokyonight → pywal)
+--   Mod4+Shift+a  — toggle window animations (smoke/dissolve)
 --   Mod4+Shift+b  — toggle island / full bar
 --   Mod4+Shift+f  — toggle FX widget animations
+--   Mod4+Shift+w  — set wallpaper + regenerate pywal theme (wal picker)
 -- ─────────────────────────────────────────────────────────────────────────────
 
 local awful         = require("awful")
@@ -16,36 +16,27 @@ require("awful.hotkeys_popup.keys")
 local M = {}
 
 function M.init(cfg)
-    local terminal    = cfg.terminal      or "kitty"
-    local modkey      = cfg.modkey        or "Mod4"
-    local anim        = cfg.animations    -- modules/animations
-    local bar         = cfg.bar           -- modules/bar
-    local theme_mgr   = cfg.theme_manager -- modules/theme_manager
-    local fx          = cfg.fx            -- modules/fx
-    local notify      = cfg.notify        -- modules/notify
+    local terminal  = cfg.terminal      or "kitty"
+    local modkey    = cfg.modkey        or "Mod4"
+    local anim      = cfg.animations
+    local bar       = cfg.bar
+    local theme_mgr = cfg.theme_manager
+    local fx        = cfg.fx
+    local notify    = cfg.notify
 
-    -- ─── Helper: themed naughty fallback (if notify module unavailable) ───────
     local function toast(text)
-        if notify then
-            notify.show { text = text, timeout = 1.5 }
-            return
-        end
+        if notify then notify.show { text = text, timeout = 1.5 }; return end
         local naughty   = require("naughty")
         local beautiful = require("beautiful")
         naughty.notify {
-            text         = text,
-            timeout      = 1.5,
-            bg           = beautiful.bg_normal   or "#1e1e2e",
+            text = text, timeout = 1.5,
+            bg = beautiful.bg_normal or "#1e1e2e",
             border_color = beautiful.border_focus or "#cba6f7",
-            border_width = 1,
-            position     = "top_middle",
-            shape        = function(cr, w, h)
-                require("gears").shape.rounded_rect(cr, w, h, 8)
-            end,
+            border_width = 1, position = "top_middle",
+            shape = function(cr, w, h) require("gears").shape.rounded_rect(cr, w, h, 8) end,
         }
     end
 
-    -- ─── Global keys ──────────────────────────────────────────────────────────
     local globalkeys = gears.table.join(
 
         -- Awesome
@@ -56,36 +47,51 @@ function M.init(cfg)
         awful.key({ modkey, "Shift" },   "q",    awesome.quit,
             { description = "quit awesome", group = "awesome" }),
 
-        -- ── Theme toggle ──────────────────────────────────────────────────────
+        -- ── Theme cycle (catppuccin → tokyonight → pywal) ─────────────────────
         awful.key({ modkey, "Shift" }, "t", function()
             if theme_mgr then
                 theme_mgr.toggle()
-                if notify then
-                    notify.theme_switched(theme_mgr.current)
-                end
+                if notify then notify.theme_switched(theme_mgr.current) end
             end
-        end, { description = "toggle theme", group = "awesome" }),
+        end, { description = "cycle theme (catppuccin/tokyonight/pywal)", group = "awesome" }),
+
+        -- ── Set wallpaper + run wal ────────────────────────────────────────────
+        -- Opens a file picker (requires zenity/yad), runs wal, reloads theme
+        awful.key({ modkey, "Shift" }, "w", function()
+            awful.spawn.easy_async_with_shell(
+                "zenity --file-selection --title='Choose wallpaper' --file-filter='*.jpg *.png *.jpeg *.webp' 2>/dev/null || "..
+                "yad --file-dialog --title='Choose wallpaper' 2>/dev/null",
+                function(out)
+                    local path = out:gsub("%s+$", "")
+                    if path == "" then return end
+                    -- Run wal then reload script
+                    awful.spawn.easy_async_with_shell(
+                        "wal -i '" .. path .. "' -n && " ..
+                        os.getenv("HOME") .. "/.config/awesome/scripts/wal-reload.sh",
+                        function()
+                            if theme_mgr then theme_mgr.apply("pywal") end
+                            if notify    then notify.theme_switched("pywal") end
+                        end)
+                end)
+        end, { description = "set wallpaper + pywal theme", group = "awesome" }),
 
         -- ── Animation toggle ──────────────────────────────────────────────────
         awful.key({ modkey, "Shift" }, "a", function()
             if anim then
                 local on = anim.toggle()
                 if notify then notify.anim_toggle(on)
-                else toast(on and "󰜛  Animations ON" or "󰜚  Animations OFF") end
+                else toast(on and "󰜛  Smoke animations ON" or "󰜚  Animations OFF") end
             end
-        end, { description = "toggle animations", group = "awesome" }),
+        end, { description = "toggle smoke animations", group = "awesome" }),
 
-        -- ── FX (widget animations) toggle ─────────────────────────────────────
+        -- ── FX toggle ─────────────────────────────────────────────────────────
         awful.key({ modkey, "Shift" }, "f", function()
             if fx then
                 local on = fx.toggle()
-                local FONT = "JetBrainsMono Nerd Font"
                 local beautiful = require("beautiful")
                 local fg = beautiful.fg_normal or "#cdd6f4"
-                toast(string.format('<span font="%s 10" foreground="%s">%s  Widget FX %s</span>',
-                    FONT, fg,
-                    on and "󰻟" or "󰻠",
-                    on and "ON" or "OFF"))
+                toast(string.format('<span font="JetBrainsMono Nerd Font 10" foreground="%s">%s  Widget FX %s</span>',
+                    fg, on and "󰻟" or "󰻠", on and "ON" or "OFF"))
             end
         end, { description = "toggle widget FX", group = "awesome" }),
 
@@ -95,11 +101,11 @@ function M.init(cfg)
         end, { description = "toggle island/full bar", group = "awesome" }),
 
         -- ── Tags ──────────────────────────────────────────────────────────────
-        awful.key({ modkey },           "Left",   awful.tag.viewprev,
+        awful.key({ modkey }, "Left",   awful.tag.viewprev,
             { description = "previous tag", group = "tag" }),
-        awful.key({ modkey },           "Right",  awful.tag.viewnext,
+        awful.key({ modkey }, "Right",  awful.tag.viewnext,
             { description = "next tag", group = "tag" }),
-        awful.key({ modkey },           "Escape", awful.tag.history.restore,
+        awful.key({ modkey }, "Escape", awful.tag.history.restore,
             { description = "go back", group = "tag" }),
 
         -- ── Focus ─────────────────────────────────────────────────────────────
@@ -184,19 +190,17 @@ function M.init(cfg)
     end
 
     root.keys(globalkeys)
-
     root.buttons(gears.table.join(
         awful.button({}, 3, function() awful.spawn("rofi -show drun") end),
         awful.button({}, 4, awful.tag.viewnext),
         awful.button({}, 5, awful.tag.viewprev)
     ))
 
-    -- ─── Client keys & buttons ────────────────────────────────────────────────
     local clientkeys = gears.table.join(
-        awful.key({ modkey },           "f", function(c)
+        awful.key({ modkey }, "f", function(c)
             c.fullscreen = not c.fullscreen; c:raise()
         end, { description = "fullscreen", group = "client" }),
-        awful.key({ modkey, "Shift" },  "c", function(c) c:kill() end,
+        awful.key({ modkey, "Shift" }, "c", function(c) c:kill() end,
             { description = "close", group = "client" }),
         awful.key({ modkey, "Control" }, "space", awful.client.floating.toggle,
             { description = "toggle floating", group = "client" }),
