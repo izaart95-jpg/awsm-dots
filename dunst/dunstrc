@@ -11,7 +11,7 @@
     horizontal_padding = 8
     text_icon_padding = 4
     frame_width = 2
-    frame_color = "#cba6f7"
+    frame_color = "#cba6f7" # wal_accent
     separator_color = frame
     sort = yes
     idle_threshold = 120
@@ -36,22 +36,22 @@
     always_run_script = true
     title = Dunst
     class = Dunst
-    corner_radius = 8
+    corner_radius = 10
     mouse_left_click = do_action
     mouse_middle_click = close_all
     mouse_right_click = close_current
 
 [urgency_low]
-    background = "#1e1e2e"
-    foreground = "#cdd6f4"
+    background = "#1e1e2e" # wal_bg
+    foreground = "#cdd6f4" # wal_fg
     timeout = 5
 
 [urgency_normal]
-    background = "#1e1e2e"
-    foreground = "#cdd6f4"
+    background = "#1e1e2e" # wal_bg
+    foreground = "#cdd6f4" # wal_fg
     timeout = 5
 
 [urgency_critical]
-    background = "#1e1e2e"
+    background = "#1e1e2e" # wal_bg
     foreground = "#f38ba8"
     timeout = 0
