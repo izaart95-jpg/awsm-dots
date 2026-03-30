@@ -7,3 +7,9 @@ nvim PKGBUILD
 arch= any
 build()
 -D tests=false
+
+
+sudo gtk-update-icon-cache -f /usr/share/icons/theme
+
+
+librsvg loader = clone build with pixbuf-loader enabled
