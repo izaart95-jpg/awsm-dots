@@ -1,18 +1,18 @@
 -- rc.lua — Awesome WM entry point
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- Load order:
---   1. Error handling
---   2. Libraries
---   3. Theme (beautiful.init)
---   4. Theme manager (live switching)
---   5. Layouts
---   6. FX system (widget animations)
---   7. Window animations
---   8. Bar & Widgets (island bar by default)
---   9. Keybindings
---  10. Rules
---  11. Titlebars & client signals
---  12. Startup applications
+--   1.  Error handling
+--   2.  Libraries
+--   3.  Theme (beautiful.init) — prefers pywal if available
+--   4.  Theme manager (live switching + pywal watcher)
+--   5.  Layouts
+--   6.  FX system
+--   7.  Window animations (smoke/dissolve)
+--   8.  Bar & Widgets
+--   9.  Keybindings
+--  10.  Rules
+--  11.  Titlebars & client signals
+--  12.  Startup applications
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- ─── 1. Error handling ────────────────────────────────────────────────────────
@@ -25,17 +25,13 @@ if awesome.startup_errors then
         text   = awesome.startup_errors,
     })
 end
-
 do
     local in_error = false
     awesome.connect_signal("debug::error", function(err)
         if in_error then return end
         in_error = true
-        naughty.notify({
-            preset = naughty.config.presets.critical,
-            title  = "Error",
-            text   = tostring(err),
-        })
+        naughty.notify({ preset = naughty.config.presets.critical,
+                         title  = "Error", text = tostring(err) })
         in_error = false
     end)
 end
@@ -45,27 +41,42 @@ local gears    = require("gears")
 local awful    = require("awful")
 require("awful.autofocus")
 local beautiful = require("beautiful")
-
--- Extend Lua path for any system-installed modules
 package.path  = package.path  .. ";/usr/share/lua/5.4/?.lua;/usr/share/lua/5.4/?/init.lua"
 package.cpath = package.cpath .. ";/usr/lib/lua/5.4/?.so"
 
--- ─── 3. Theme ─────────────────────────────────────────────────────────────────
--- Options: "catppuccin"  |  "tokyonight"
--- Live switching is handled by modules/theme_manager.lua — no restart needed.
-local THEME = "catppuccin"
+-- ─── 3. Theme — prefer pywal, fall back to catppuccin ─────────────────────────
+local function pick_theme()
+    -- If user set WAL_THEME env var, use that
+    local env_theme = os.getenv("AWESOME_THEME")
+    if env_theme then return env_theme end
 
+    -- If pywal theme file exists and wal cache exists, use pywal
+    local home = os.getenv("HOME")
+    local pywal_theme = home .. "/.config/awesome/themes/pywal.lua"
+    local wal_cache   = home .. "/.cache/wal/colors.sh"
+    local f1 = io.open(pywal_theme, "r")
+    local f2 = io.open(wal_cache,   "r")
+    if f1 and f2 then
+        f1:close(); f2:close()
+        return "pywal"
+    end
+    if f1 then f1:close() end
+    if f2 then f2:close() end
+
+    return "catppuccin"
+end
+
+local THEME = pick_theme()
 local theme_path = os.getenv("HOME") .. "/.config/awesome/themes/" .. THEME .. ".lua"
 beautiful.init(theme_path)
 
 -- ─── 4. Theme manager ─────────────────────────────────────────────────────────
 local theme_manager = require("modules.theme_manager")
 theme_manager.init(THEME)
--- Debug mode: set false to silence "[theme_manager]" log lines
-theme_manager.debug = true
+theme_manager.debug = false   -- set true to see [theme_manager] logs
 
 -- ─── 5. Config ────────────────────────────────────────────────────────────────
-local terminal = "kitty"
+local terminal = os.getenv("TERMINAL") or "kitty"
 local modkey   = "Mod4"
 beautiful.useless_gap = 4
 
@@ -78,17 +89,15 @@ awful.layout.layouts = {
     awful.layout.suit.max,
 }
 
--- ─── 7. FX system (widget hover/press animations) ─────────────────────────────
+-- ─── 7. FX system ─────────────────────────────────────────────────────────────
 local fx = require("modules.fx")
--- Tune global defaults here if desired:
--- fx.hover_duration = 0.12
--- fx.press_duration = 0.08
 
--- ─── 8. Window animations ─────────────────────────────────────────────────────
+-- ─── 8. Window animations (smoke/dissolve) ────────────────────────────────────
 local animations = require("modules.animations")
 animations.init()
--- animations.enabled  = true
--- animations.duration = 0.18
+-- Tune smoke feel here:
+-- animations.duration     = 0.50   -- seconds (open)
+-- animations.close_factor = 0.60   -- multiplier for close
 
 -- ─── 9. Notification helper ───────────────────────────────────────────────────
 local notify = require("modules.notify")
@@ -101,13 +110,13 @@ bar.show_vol      = true
 bar.show_bat      = false
 bar.show_wifi     = true
 bar.position      = "top"
-bar.floating_mode = true    -- ← island bar by default
+bar.floating_mode = true
 
--- Optional: fine-tune island bar appearance here
+-- Appearance tweaks (optional):
 -- bar.style.margin_top  = 8
 -- bar.style.margin_side = 12
--- bar.style.spacing     = 6
 -- bar.style.opacity     = 0.92
+-- bar.style.spacing     = 8
 
 bar.init()
 
@@ -135,5 +144,23 @@ titlebars.init()
 awful.spawn.with_shell("pkill -9 picom 2>/dev/null; pkill -9 dunst 2>/dev/null; true")
 awful.spawn.with_shell("sleep 0.2 && dunst &")
 awful.spawn.with_shell("sleep 0.2 && picom -b &")
-awful.spawn.with_shell(
-    "feh --bg-fill " .. os.getenv("HOME") .. "/Pictures/wallpaper.jpg 2>/dev/null || true")
+
+-- Apply wallpaper: use pywal's stored wallpaper if available
+awful.spawn.with_shell([[
+    WAL="$HOME/.cache/wal/wal"
+    if [[ -f "$WAL" ]]; then
+        feh --bg-fill "$WAL"
+    else
+        feh --bg-fill "$HOME/Pictures/wallpaper.jpg" 2>/dev/null || true
+    fi
+]])
+
+-- Auto-generate pywal theme if wal cache exists but theme lua doesn't
+awful.spawn.with_shell([[
+    THEME="$HOME/.config/awesome/themes/pywal.lua"
+    CACHE="$HOME/.cache/wal/colors.sh"
+    SCRIPT="$HOME/.config/awesome/scripts/wal-reload.sh"
+    if [[ -f "$CACHE" && ! -f "$THEME" && -x "$SCRIPT" ]]; then
+        "$SCRIPT" &
+    fi
+]])
